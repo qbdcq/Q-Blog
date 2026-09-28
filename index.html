@@ -3,67 +3,119 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Q-Blog —— 一个记录技术、折腾与思考的个人博客。">
+  <meta name="description" content="Q-Blog —— 一个记录技术、思考与折腾的个人博客。">
   <meta name="theme-color" content="#0b0f19">
   <title>Q-Blog · 个人博客</title>
 
+  <!-- 防止主题闪烁：首帧渲染前就应用已保存/系统偏好的主题 -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("qblog-theme");
+        var dark = saved === "dark" ||
+          (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+      } catch (e) {}
+    })();
+  </script>
+
   <style>
     :root {
-      --bg: #f6f7fb;
-      --surface: rgba(255,255,255,.78);
+      --bg: #f4f6fb;
+      --surface: rgba(255, 255, 255, .72);
       --surface-solid: #ffffff;
       --text: #16181d;
       --muted: #687080;
-      --line: rgba(20,25,35,.10);
+      --line: rgba(20, 25, 35, .10);
       --accent: #5b5ce2;
       --accent-2: #8b5cf6;
-      --shadow: 0 18px 60px rgba(25,30,55,.10);
+      --accent-soft: rgba(91, 92, 226, .14);
+      --shadow: 0 18px 60px rgba(25, 30, 55, .10);
       --radius: 22px;
       --max-width: 1120px;
+      --ease: .22s ease;
+      --viewport-height: 100vh;
+      --header-height: 65px;
+    }
+
+    /* 动态视口可随移动端地址栏展开/收起而变化；旧浏览器仍回退到 100vh。 */
+    @supports (height: 100dvh) {
+      :root { --viewport-height: 100dvh; }
     }
 
     html.dark {
       --bg: #080b12;
-      --surface: rgba(17,22,34,.78);
+      --surface: rgba(17, 22, 34, .72);
       --surface-solid: #111622;
       --text: #f2f4f8;
       --muted: #9ba4b5;
-      --line: rgba(255,255,255,.10);
+      --line: rgba(255, 255, 255, .10);
       --accent: #818cf8;
       --accent-2: #a78bfa;
-      --shadow: 0 18px 70px rgba(0,0,0,.32);
+      --accent-soft: rgba(129, 140, 248, .18);
+      --shadow: 0 18px 70px rgba(0, 0, 0, .32);
     }
 
     * { box-sizing: border-box; }
 
     html {
       scroll-behavior: smooth;
-      scroll-padding-top: 84px;
+      scroll-padding-top: var(--header-height);
+      /* 全屏翻页机制：滚轮/触控板拨一下即吸附到下一屏 */
+      scroll-snap-type: y mandatory;
+    }
+
+    /* 未来每个全屏板块只需添加 class="full"，即可纳入吸附分页 */
+    .full {
+      min-height: calc(var(--viewport-height) - var(--header-height));
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+    /* 让全屏板块的内容在页面内垂直居中，排版与其他屏保持一致 */
+    .full > .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      min-height: calc(var(--viewport-height) - var(--header-height));
+      padding: 90px 0;
+      text-align: center;
+    }
+
+    .full h2 {
+      margin: 0 0 4px;
+      max-width: 880px;
+      font-size: clamp(2.8rem, 8vw, 5.5rem);
+      line-height: 1.05;
+      letter-spacing: -.05em;
+      font-weight: 900;
+    }
+
+    .full .btn {
+      margin-top: 14px;
     }
 
     body {
       margin: 0;
       min-height: 100vh;
+      overflow-x: hidden;
       font-family:
         Inter, "Noto Sans SC", "Microsoft YaHei", system-ui,
         -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 15% 0%, rgba(91,92,226,.12), transparent 30rem),
-        radial-gradient(circle at 90% 10%, rgba(139,92,246,.10), transparent 28rem),
+        radial-gradient(circle at 15% 8%, var(--accent-soft), transparent 30rem),
+        radial-gradient(circle at 90% 78%, rgba(139, 92, 246, .13), transparent 28rem),
         var(--bg);
       line-height: 1.7;
-      transition: background .25s ease, color .25s ease;
+      transition: background .3s ease, color .3s ease;
     }
 
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    button {
-      font: inherit;
-    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    img svg { display: block; }
 
     .container {
       width: min(calc(100% - 40px), var(--max-width));
@@ -93,7 +145,7 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 800;
       letter-spacing: -.02em;
     }
@@ -106,79 +158,59 @@
       border-radius: 11px;
       color: white;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 8px 24px rgba(91,92,226,.28);
+      box-shadow: 0 8px 24px rgba(91, 92, 226, .28);
     }
 
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .nav-links a,
-    .theme-btn {
-      padding: 8px 12px;
+    /* Focus ring for keyboard users */
+    :focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
       border-radius: 10px;
-      color: var(--muted);
-      border: 0;
-      background: transparent;
-      cursor: pointer;
-      transition: .2s ease;
-    }
-
-    .nav-links a:hover,
-    .theme-btn:hover {
-      color: var(--text);
-      background: var(--surface);
     }
 
     .theme-btn {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
       font-size: 1.05rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: var(--ease);
+    }
+
+    .theme-btn:hover {
+      background: var(--surface-solid);
+      transform: translateY(-1px);
     }
 
     /* Hero */
     .hero {
       position: relative;
-      min-height: 620px;
+      min-height: calc(var(--viewport-height) - var(--header-height));
       display: grid;
       place-items: center;
       overflow: hidden;
+      padding: 0;
     }
 
     .hero-inner {
       width: 100%;
-      padding: 110px 0 90px;
       text-align: center;
     }
 
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 13px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--muted);
-      background: var(--surface);
-      backdrop-filter: blur(12px);
-      font-size: .88rem;
-    }
-
-    .eyebrow-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #38c172;
-      box-shadow: 0 0 0 5px rgba(56,193,114,.12);
-    }
-
     h1 {
-      margin: 25px auto 16px;
-      max-width: 850px;
-      font-size: clamp(3.3rem, 10vw, 7.8rem);
-      line-height: .95;
+      margin: 26px auto 18px;
+      max-width: 880px;
+      font-size: clamp(3.4rem, 11vw, 8rem);
+      line-height: .98;
       letter-spacing: -.075em;
       font-weight: 900;
+      white-space: nowrap;
     }
 
     .gradient-text {
@@ -186,9 +218,10 @@
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
+      padding-right: .075em;
     }
 
-    .hero p {
+    .hero .lead {
       max-width: 660px;
       margin: 0 auto;
       color: var(--muted);
@@ -200,69 +233,58 @@
       justify-content: center;
       flex-wrap: wrap;
       gap: 12px;
-      margin-top: 32px;
+      margin-top: 34px;
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 46px;
-      padding: 0 20px;
+      min-height: 48px;
+      min-width: 120px;
+      padding: 0 22px;
       border-radius: 13px;
       border: 1px solid var(--line);
       font-weight: 700;
-      transition: transform .2s ease, box-shadow .2s ease;
+      transition: transform var(--ease), box-shadow var(--ease);
     }
 
-    .btn:hover {
-      transform: translateY(-2px);
-    }
+    .btn:hover { transform: translateY(-2px); }
 
     .btn-primary {
       color: white;
       border-color: transparent;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 12px 28px rgba(91,92,226,.25);
+      box-shadow: 0 12px 28px rgba(91, 92, 226, .25);
     }
 
-    .btn-secondary {
-      background: var(--surface);
-    }
+    .btn-secondary { background: var(--surface); backdrop-filter: blur(12px); }
+    .btn-secondary:hover { background: var(--surface-solid); }
 
     .scroll-hint {
       position: absolute;
-      bottom: 25px;
+      bottom: 26px;
       left: 50%;
       transform: translateX(-50%);
       color: var(--muted);
-      font-size: .78rem;
+      font-size: .76rem;
+      letter-spacing: .12em;
       opacity: .75;
+      text-align: center;
     }
 
     .scroll-hint span {
       display: block;
       width: 1px;
-      height: 28px;
-      margin: 5px auto 0;
+      height: 30px;
+      margin: 6px auto 0;
       background: var(--muted);
+      opacity: .8;
     }
 
-    /* Sections */
-    section {
-      padding: 90px 0;
-    }
-
-    .section-head {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 20px;
-      margin-bottom: 28px;
-    }
-
+    /* 全屏测试页 */
     .section-kicker {
-      margin: 0 0 4px;
+      margin: 0 0 2px;
       color: var(--accent);
       font-size: .8rem;
       font-weight: 800;
@@ -270,186 +292,43 @@
       text-transform: uppercase;
     }
 
-    h2 {
+    .test-desc {
       margin: 0;
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      letter-spacing: -.045em;
-    }
-
-    .section-description {
-      margin: 7px 0 0;
+      max-width: 640px;
       color: var(--muted);
-    }
-
-    /* Posts */
-    .posts {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-    }
-
-    .post {
-      display: flex;
-      flex-direction: column;
-      min-height: 330px;
-      padding: 25px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--surface);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      transition: transform .22s ease, border-color .22s ease;
-    }
-
-    .post:hover {
-      transform: translateY(-6px);
-      border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-    }
-
-    .post-tag {
-      width: fit-content;
-      padding: 5px 9px;
-      border-radius: 8px;
-      color: var(--accent);
-      background: color-mix(in srgb, var(--accent) 10%, transparent);
-      font-size: .76rem;
-      font-weight: 800;
-    }
-
-    .post h3 {
-      margin: 22px 0 10px;
-      font-size: 1.3rem;
-      line-height: 1.35;
-      letter-spacing: -.025em;
-    }
-
-    .post p {
-      margin: 0;
-      color: var(--muted);
-      font-size: .94rem;
-    }
-
-    .post-meta {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: auto;
-      padding-top: 24px;
-      color: var(--muted);
-      font-size: .78rem;
-    }
-
-    /* About */
-    .about-card {
-      display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 25px;
-      padding: 34px;
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      background: var(--surface);
-      box-shadow: var(--shadow);
-    }
-
-    .about-card h2 {
-      margin-bottom: 15px;
-    }
-
-    .about-card p {
-      color: var(--muted);
-      max-width: 680px;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .stat {
-      padding: 20px;
-      border: 1px solid var(--line);
-      border-radius: 17px;
-      background: color-mix(in srgb, var(--surface-solid) 50%, transparent);
-    }
-
-    .stat strong {
-      display: block;
-      font-size: 1.65rem;
-      letter-spacing: -.04em;
-    }
-
-    .stat span {
-      color: var(--muted);
-      font-size: .8rem;
+      font-size: clamp(1rem, 2vw, 1.2rem);
     }
 
     /* Footer */
     footer {
-      padding: 35px 0 45px;
+      padding: 30px 0 42px;
       border-top: 1px solid var(--line);
       color: var(--muted);
       font-size: .84rem;
+      scroll-snap-align: end;
+      scroll-snap-stop: always;
     }
 
     .footer-inner {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       gap: 20px;
       flex-wrap: wrap;
     }
 
     /* Responsive */
-    @media (max-width: 820px) {
-      .posts {
-        grid-template-columns: 1fr;
-      }
-
-      .post {
-        min-height: 250px;
-      }
-
-      .about-card {
-        grid-template-columns: 1fr;
-      }
-    }
-
     @media (max-width: 620px) {
       .container {
         width: min(calc(100% - 28px), var(--max-width));
-      }
-
-      .nav-links a:not(:last-child) {
-        display: none;
-      }
-
-      .hero {
-        min-height: 560px;
-      }
-
-      .hero-inner {
-        padding-top: 80px;
       }
 
       h1 {
         font-size: clamp(3.2rem, 20vw, 5rem);
       }
 
-      section {
-        padding: 65px 0;
-      }
-
-      .section-head {
-        display: block;
-      }
-
-      .about-card {
-        padding: 24px;
-      }
-
-      .stats {
-        grid-template-columns: 1fr 1fr;
-      }
+      .btn { min-width: 100%; }
+      .footer-inner { justify-content: center; text-align: center; }
     }
 
     /* Respect reduced-motion preferences */
@@ -472,39 +351,24 @@
           <span>Q-Blog</span>
         </a>
 
-        <div class="nav-links">
-          <a href="#home">首页</a>
-          <a href="#posts">文章</a>
-          <a href="#about">关于</a>
-          <button class="theme-btn" id="themeToggle" type="button"
-                  aria-label="切换明暗主题" title="切换明暗主题">◐</button>
-        </div>
+        <button class="theme-btn" id="themeToggle" type="button"
+                aria-label="切换明暗主题" title="切换明暗主题">◐</button>
       </nav>
     </div>
   </header>
 
   <main>
-    <section class="hero" id="home">
+    <section class="hero full" id="home">
       <div class="container hero-inner">
-        <div class="eyebrow">
-          <span class="eyebrow-dot"></span>
-          Q-Blog · Personal Space
-        </div>
+        <h1><span class="gradient-text">QBDCQ</span></h1>
 
-        <h1>
-          <span class="gradient-text">记录</span>，
-          <br>
-          思考，<span class="gradient-text">折腾</span>。
-        </h1>
-
-        <p>
-          这里是 Q-Blog。记录技术实验、项目开发、网络与硬件折腾，
-          也记录一些值得留下来的想法。
+        <p class="lead">
+          这里是 Q-Blog。记录技术实验、项目开发与一些值得留下来的想法。
         </p>
 
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#posts">开始阅读</a>
-          <a class="btn btn-secondary" href="#about">了解 Q-Blog</a>
+          <a class="btn btn-primary" href="#home">开始探索</a>
+          <a class="btn btn-secondary" href="#home">了解更多</a>
         </div>
       </div>
 
@@ -514,93 +378,25 @@
       </div>
     </section>
 
-    <section id="posts">
+    <section class="full" id="about">
       <div class="container">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">Latest</p>
-            <h2>最近记录</h2>
-            <p class="section-description">把正在做的事情，慢慢写下来。</p>
-          </div>
-        </div>
-
-        <div class="posts">
-          <article class="post">
-            <span class="post-tag">Web</span>
-            <h3>让一个 GitHub Pages 博客真正跑起来</h3>
-            <p>
-              从一个简单的 index.html 开始，逐步加入响应式布局、
-              明暗主题和更完整的博客结构。
-            </p>
-            <div class="post-meta">
-              <span>Q-Blog</span>
-              <span>待更新</span>
-            </div>
-          </article>
-
-          <article class="post">
-            <span class="post-tag">Projects</span>
-            <h3>正在进行中的项目</h3>
-            <p>
-              记录正在开发、测试和折腾的项目，让每一次尝试都能留下痕迹。
-            </p>
-            <div class="post-meta">
-              <span>Projects</span>
-              <span>Coming soon</span>
-            </div>
-          </article>
-
-          <article class="post">
-            <span class="post-tag">Thoughts</span>
-            <h3>一些不一定有答案的问题</h3>
-            <p>
-              技术之外，也记录关于互联网、创造、学习和未来的一些思考。
-            </p>
-            <div class="post-meta">
-              <span>Thoughts</span>
-              <span>Coming soon</span>
-            </div>
-          </article>
-        </div>
+        <p class="section-kicker">About</p>
+        <h2>这里是一页测试</h2>
+        <p class="test-desc">
+          这是第二页（关于测试页）。向下滚动即可翻到下一页。
+        </p>
+        <a class="btn btn-secondary" href="#contact">翻到下一页 →</a>
       </div>
     </section>
 
-    <section id="about">
+    <section class="full" id="contact">
       <div class="container">
-        <div class="about-card">
-          <div>
-            <p class="section-kicker">About</p>
-            <h2>Q-Blog 是什么？</h2>
-            <p>
-              Q-Blog 是一个独立的个人博客空间。
-              它不追求复杂的 CMS，也不依赖大型框架，
-              先从一个可以直接部署到 GitHub Pages 的静态网站开始。
-            </p>
-            <p>
-              后续可以在这里加入真正的文章系统、标签、搜索、
-              评论、3D 滚动动画以及更多交互功能。
-            </p>
-          </div>
-
-          <div class="stats" aria-label="Q-Blog 信息">
-            <div class="stat">
-              <strong>01</strong>
-              <span>Version</span>
-            </div>
-            <div class="stat">
-              <strong>∞</strong>
-              <span>Ideas</span>
-            </div>
-            <div class="stat">
-              <strong>Web</strong>
-              <span>Platform</span>
-            </div>
-            <div class="stat">
-              <strong>Open</strong>
-              <span>GitHub Pages</span>
-            </div>
-          </div>
-        </div>
+        <p class="section-kicker">Contact</p>
+        <h2>这里是第三页</h2>
+        <p class="test-desc">
+          第三屏（联系测试页）。内容随意，仅用于验证整页吸附翻页。
+        </p>
+        <a class="btn btn-primary" href="#home">回到首页 ↑</a>
       </div>
     </section>
   </main>
@@ -608,12 +404,12 @@
   <footer>
     <div class="container footer-inner">
       <span>© <span id="year"></span> Q-Blog</span>
-      <span>Built with HTML · CSS · JavaScript</span>
+      <span><a href="mobile.html" id="mobileLink" style="color: var(--accent)">手机版</a> · Built with HTML · CSS · JavaScript</span>
     </div>
   </footer>
 
   <script>
-    // Theme: remember the visitor's preference locally.
+    // 主题切换：在前端记住访客偏好，并同步按钮状态
     const root = document.documentElement;
     const toggle = document.getElementById("themeToggle");
 
@@ -626,20 +422,108 @@
       );
     }
 
-    const savedTheme = localStorage.getItem("qblog-theme");
-    const preferredTheme =
-      savedTheme ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-
-    applyTheme(preferredTheme);
+    // 读取内联脚本已应用的初始化主题（若为深色则为 dark，否则 light）
+    const current = root.classList.contains("dark") ? "dark" : "light";
+    applyTheme(current);
 
     toggle.addEventListener("click", () => {
       const next = root.classList.contains("dark") ? "light" : "dark";
-      localStorage.setItem("qblog-theme", next);
+      try { localStorage.setItem("qblog-theme", next); } catch (e) {}
       applyTheme(next);
     });
 
     document.getElementById("year").textContent = new Date().getFullYear();
+
+    // 以实际可见区域计算每屏高度：浏览器地址栏、书签栏或窗口尺寸变化后立即重算。
+    (function () {
+      var header = document.querySelector(".nav-wrap");
+
+      function updateViewportSize() {
+        var viewport = window.visualViewport;
+        var height = viewport ? viewport.height : window.innerHeight;
+        root.style.setProperty("--viewport-height", Math.round(height) + "px");
+        if (header) root.style.setProperty("--header-height", header.offsetHeight + "px");
+      }
+
+      updateViewportSize();
+      window.addEventListener("resize", updateViewportSize);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", updateViewportSize);
+      }
+      if (header && window.ResizeObserver) {
+        new ResizeObserver(updateViewportSize).observe(header);
+      }
+    })();
+
+    // 桌面滚轮按屏翻页：一次拨动只会切换到相邻的全屏区块，
+    // 并在动画期间吞掉同一拨动产生的后续 wheel 事件，避免连跳多屏。
+    (function () {
+      // 页脚同样是最后一个滚动停靠点，需纳入序列以便向上先回到第三屏。
+      var pages = Array.prototype.slice.call(document.querySelectorAll(".full, footer"));
+      var paging = false;
+      var supportsFinePointer = window.matchMedia("(pointer: fine)").matches;
+      var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (!supportsFinePointer || !pages.length) return;
+
+      window.addEventListener("wheel", function (event) {
+        if (event.ctrlKey || !event.deltaY) return;
+
+        // 锁定期间仍阻止浏览器默认滚动，防止一拨滚轮累计成多次翻页。
+        if (paging) {
+          event.preventDefault();
+          return;
+        }
+
+        var direction = event.deltaY > 0 ? 1 : -1;
+        var currentIndex = 0;
+        var nearestDistance = Infinity;
+        var snapLine = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+        var viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        var atDocumentEnd = window.scrollY + viewportHeight >= document.documentElement.scrollHeight - 1;
+
+        if (atDocumentEnd) {
+          currentIndex = pages.length - 1;
+        } else {
+          pages.forEach(function (page, index) {
+            var distance = Math.abs(page.getBoundingClientRect().top - snapLine);
+            if (distance < nearestDistance) {
+              nearestDistance = distance;
+              currentIndex = index;
+            }
+          });
+        }
+
+        var nextPage = pages[currentIndex + direction];
+        if (!nextPage) return;
+
+        event.preventDefault();
+        paging = true;
+        nextPage.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+
+        window.setTimeout(function () { paging = false; }, reducedMotion ? 0 : 450);
+      }, { passive: false });
+    })();
+
+    // “手机版”入口：手动选择的设备只在当前会话生效，下次/换设备自动重新检测
+    document.getElementById("mobileLink").addEventListener("click", () => {
+      try { sessionStorage.setItem("qblog-device", "mobile"); } catch (e) {}
+    });
+
+    // 设备自动检测与跳转：默认按当前设备走，手动选择仅临时覆盖
+    (function () {
+      function isMobileDevice() {
+        var coarse = window.matchMedia("(pointer: coarse)").matches;
+        var narrow = window.innerWidth < 768;
+        var ua = navigator.userAgentData ? navigator.userAgentData.mobile
+          : /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+        return coarse || narrow || ua === true;
+      }
+      try {
+        var pref = sessionStorage.getItem("qblog-device");
+        if (pref !== "desktop" && isMobileDevice()) location.replace("mobile.html");
+      } catch (e) {}
+    })();
   </script>
 </body>
 </html>
